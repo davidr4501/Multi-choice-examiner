@@ -103,12 +103,7 @@ def verify_otp():
 
         flash(f'Welcome back, {teacher.name or teacher.email}!', 'success')
 
-        # Only allow relative (same-origin) redirects to prevent open redirect attacks
-        next_page = request.args.get('next', '')
-        safe_next = url_for('subjects.list_subjects')
-        if next_page and next_page.startswith('/') and not next_page.startswith('//'):
-            safe_next = next_page
-        return redirect(safe_next)
+        return redirect(url_for('subjects.list_subjects'))
 
     expiry_minutes = current_app.config.get('OTP_EXPIRY_MINUTES', 5)
     return render_template('auth/verify_otp.html', email=email, otp_expiry_minutes=expiry_minutes)
