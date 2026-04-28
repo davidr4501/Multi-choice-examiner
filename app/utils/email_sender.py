@@ -7,6 +7,7 @@ def send_otp_email(email, otp_token, teacher_name=None):
     """Send OTP email. Falls back to logging if mail not configured."""
     name = teacher_name or email.split('@')[0]
 
+    expiry_minutes = current_app.config.get('OTP_EXPIRY_MINUTES', 5)
     subject = 'Your Login OTP - MCQ Examiner'
     body = f"""Hello {name},
 
@@ -14,7 +15,7 @@ Your one-time password (OTP) for MCQ Examiner is:
 
     {otp_token}
 
-This OTP is valid for 5 minutes. Do not share it with anyone.
+This OTP is valid for {expiry_minutes} minutes. Do not share it with anyone.
 
 If you did not request this, please ignore this email.
 
@@ -32,7 +33,7 @@ MCQ Examiner Team
             {otp_token}
         </span>
     </div>
-    <p>This OTP is valid for <strong>{current_app.config.get('OTP_EXPIRY_MINUTES', 5)} minutes</strong>.</p>
+    <p>This OTP is valid for <strong>{expiry_minutes} minutes</strong>.</p>
     <p style="color: #dc3545;">Do not share this OTP with anyone.</p>
     <hr>
     <p style="color: #6c757d; font-size: 12px;">

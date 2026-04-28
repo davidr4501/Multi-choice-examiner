@@ -1,7 +1,7 @@
 import random
 import string
 from datetime import datetime, timedelta
-from flask import render_template, redirect, url_for, flash, request, session
+from flask import render_template, redirect, url_for, flash, request, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from app import db
 from app.auth import auth_bp
@@ -40,7 +40,8 @@ def login():
         db.session.commit()
 
         otp = generate_otp()
-        expires_at = datetime.utcnow() + timedelta(minutes=5)
+        expiry_minutes = current_app.config.get('OTP_EXPIRY_MINUTES', 5)
+        expires_at = datetime.utcnow() + timedelta(minutes=expiry_minutes)
         token = OTPToken(teacher_id=teacher.id, token=otp, expires_at=expires_at)
         db.session.add(token)
         db.session.commit()
@@ -103,16 +104,14 @@ def verify_otp():
         flash(f'Welcome back, {teacher.name or teacher.email}!', 'success')
 
         # Only allow relative (same-origin) redirects to prevent open redirect attacks
-        next_page = request.args.get('next')
+        next_page = request.args.get('next', '')
         safe_next = url_for('subjects.list_subjects')
-        if next_page:
-            from urllib.parse import urlsplit
-            parsed = urlsplit(next_page)
-            if not parsed.scheme and not parsed.netloc:
-                safe_next = next_page
+        if next_page and next_page.startswith('/') and not next_page.startswith('//'):
+            safe_next = next_page
         return redirect(safe_next)
 
-    return render_template('auth/verify_otp.html', email=email)
+    expiry_minutes = current_app.config.get('OTP_EXPIRY_MINUTES', 5)
+    return render_template('auth/verify_otp.html', email=email, otp_expiry_minutes=expiry_minutes)
 
 
 @auth_bp.route('/logout')
