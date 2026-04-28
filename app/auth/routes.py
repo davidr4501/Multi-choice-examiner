@@ -102,10 +102,14 @@ def verify_otp():
 
         flash(f'Welcome back, {teacher.name or teacher.email}!', 'success')
 
+        # Only allow same-origin redirects to prevent open redirect attacks
         next_page = request.args.get('next')
         if next_page:
-            return redirect(next_page)
-        return redirect(url_for('subjects.list_subjects'))
+            from urllib.parse import urlsplit
+            parsed = urlsplit(next_page)
+            if parsed.scheme or parsed.netloc:
+                next_page = None
+        return redirect(next_page or url_for('subjects.list_subjects'))
 
     return render_template('auth/verify_otp.html', email=email)
 
