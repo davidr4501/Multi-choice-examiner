@@ -32,7 +32,7 @@ MCQ Examiner Team
             {otp_token}
         </span>
     </div>
-    <p>This OTP is valid for <strong>5 minutes</strong>.</p>
+    <p>This OTP is valid for <strong>{current_app.config.get('OTP_EXPIRY_MINUTES', 5)} minutes</strong>.</p>
     <p style="color: #dc3545;">Do not share this OTP with anyone.</p>
     <hr>
     <p style="color: #6c757d; font-size: 12px;">
