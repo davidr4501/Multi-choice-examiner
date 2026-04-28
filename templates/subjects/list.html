@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}Subjects – MCQ Examiner{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0"><i class="bi bi-book me-2 text-primary"></i>My Subjects</h2>
+    <a href="{{ url_for('subjects.create_subject') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>New Subject
+    </a>
+</div>
+
+{% if subjects %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for subject in subjects %}
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0 rounded-3 subject-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="card-title fw-bold mb-1">
+                        <i class="bi bi-journal-bookmark-fill text-primary me-2"></i>{{ subject.name }}
+                    </h5>
+                    <span class="badge bg-primary-subtle text-primary rounded-pill">
+                        {{ subject.exam_sessions.count() }} exam{% if subject.exam_sessions.count() != 1 %}s{% endif %}
+                    </span>
+                </div>
+                <p class="text-muted small mb-3">
+                    <i class="bi bi-calendar3 me-1"></i>
+                    Created {{ subject.created_at.strftime('%d %b %Y') }}
+                </p>
+
+                {% set q_count = namespace(total=0) %}
+                {% for es in subject.exam_sessions %}
+                    {% set q_count.total = q_count.total + es.questions.count() %}
+                {% endfor %}
+                <p class="text-muted small mb-3">
+                    <i class="bi bi-question-circle me-1"></i>{{ q_count.total }} question{% if q_count.total != 1 %}s{% endif %}
+                    &nbsp;|&nbsp;
+                    <i class="bi bi-tags me-1"></i>{{ subject.tags.count() }} tag{% if subject.tags.count() != 1 %}s{% endif %}
+                </p>
+            </div>
+            <div class="card-footer bg-transparent border-0 pt-0">
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('questions.upload_exam', subject_id=subject.id) }}"
+                       class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-upload me-1"></i>Upload Exam
+                    </a>
+                    <a href="{{ url_for('tests.create_test') }}?subject_id={{ subject.id }}"
+                       class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-clipboard-plus me-1"></i>Create Test
+                    </a>
+                    <form method="POST"
+                          action="{{ url_for('subjects.delete_subject', subject_id=subject.id) }}"
+                          class="d-inline"
+                          onsubmit="return confirm('Delete subject &quot;{{ subject.name }}&quot; and all its data?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+
+                {% if subject.exam_sessions.count() > 0 %}
+                <div class="mt-3">
+                    <small class="text-muted fw-semibold text-uppercase">Exam Papers</small>
+                    <ul class="list-unstyled mt-1 mb-0">
+                        {% for es in subject.exam_sessions %}
+                        <li class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                            <span class="small">
+                                <i class="bi bi-file-earmark-pdf text-danger me-1"></i>
+                                <strong>{{ es.reference_code }}</strong>
+                                <span class="text-muted">({{ es.questions.count() }} Qs)</span>
+                            </span>
+                            <a href="{{ url_for('questions.tag_questions', exam_session_id=es.id) }}"
+                               class="btn btn-xs btn-outline-secondary" style="font-size:0.75rem;padding:1px 6px;">
+                                <i class="bi bi-tags me-1"></i>Tags
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-book text-muted" style="font-size:4rem;opacity:0.3;"></i>
+    <h4 class="mt-3 text-muted">No subjects yet</h4>
+    <p class="text-muted">Create your first subject to start uploading exam papers.</p>
+    <a href="{{ url_for('subjects.create_subject') }}" class="btn btn-primary btn-lg mt-2">
+        <i class="bi bi-plus-lg me-1"></i>Create First Subject
+    </a>
+</div>
+{% endif %}
+{% endblock %}

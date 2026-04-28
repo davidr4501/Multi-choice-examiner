@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Upload Exam – {{ subject.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="d-flex align-items-center mb-4">
+            <a href="{{ url_for('subjects.list_subjects') }}" class="btn btn-outline-secondary btn-sm me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h2 class="fw-bold mb-0"><i class="bi bi-upload text-primary me-2"></i>Upload Exam Paper</h2>
+                <p class="text-muted mb-0">Subject: <strong>{{ subject.name }}</strong></p>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-4">
+                <form method="POST"
+                      action="{{ url_for('questions.upload_exam', subject_id=subject.id) }}"
+                      enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-4">
+                        <label for="reference_code" class="form-label fw-semibold">
+                            <i class="bi bi-hash me-1"></i>Reference Code
+                        </label>
+                        <input type="text" class="form-control" id="reference_code" name="reference_code"
+                               placeholder="e.g. 9700/12/M/J/23" required>
+                        <div class="form-text">A unique code identifying this exam paper (e.g. syllabus/paper/session).</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="exam_pdf" class="form-label fw-semibold">
+                            <i class="bi bi-file-earmark-pdf text-danger me-1"></i>Exam Paper (PDF)
+                        </label>
+                        <input type="file" class="form-control" id="exam_pdf" name="exam_pdf"
+                               accept=".pdf" required>
+                        <div class="form-text">The question paper PDF. MCQ questions will be automatically extracted.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="markscheme_pdf" class="form-label fw-semibold">
+                            <i class="bi bi-file-earmark-check text-success me-1"></i>Mark Scheme (PDF)
+                            <span class="badge bg-secondary ms-1">Optional</span>
+                        </label>
+                        <input type="file" class="form-control" id="markscheme_pdf" name="markscheme_pdf"
+                               accept=".pdf">
+                        <div class="form-text">
+                            Upload the mark scheme to automatically populate correct answers.
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info border-0 small">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>Parsing Tips:</strong> The system extracts questions numbered like
+                        <code>1.</code>, <code>2)</code>, or <code>Q1</code> with options <code>A)</code> through <code>D)</code>.
+                        You can manually edit any questions after upload.
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn">
+                            <i class="bi bi-cloud-upload me-2"></i>Upload &amp; Parse
+                        </button>
+                        <a href="{{ url_for('subjects.list_subjects') }}" class="btn btn-outline-secondary btn-lg">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelector('form').addEventListener('submit', function() {
+    const btn = document.getElementById('uploadBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Parsing PDF...';
+});
+</script>
+{% endblock %}

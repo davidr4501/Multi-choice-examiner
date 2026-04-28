@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Login – MCQ Examiner{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card shadow border-0 rounded-3">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <i class="bi bi-pencil-square text-primary" style="font-size:3rem;"></i>
+                    <h2 class="fw-bold mt-2">MCQ Examiner</h2>
+                    <p class="text-muted">Sign in with your email — no password needed</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-semibold">
+                            <i class="bi bi-envelope me-1"></i>Email Address
+                        </label>
+                        <input type="email" class="form-control form-control-lg" id="email" name="email"
+                               placeholder="teacher@school.edu" required autofocus>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="bi bi-send me-2"></i>Send OTP
+                    </button>
+                </form>
+
+                <div class="mt-4 p-3 bg-light rounded small text-muted">
+                    <i class="bi bi-shield-check me-1 text-success"></i>
+                    We'll send a 6-digit code to your email. New accounts are created automatically on first login.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

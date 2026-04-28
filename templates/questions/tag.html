@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% block title %}Tag Questions – {{ exam_session.reference_code }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-tags text-primary me-2"></i>Tag Questions
+        </h2>
+        <p class="text-muted mb-0">
+            <strong>{{ subject.name }}</strong> &mdash; {{ exam_session.reference_code }}
+            &mdash; {{ questions|length }} question{% if questions|length != 1 %}s{% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('subjects.list_subjects') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+{% if not questions %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    No questions were extracted from this PDF. You can
+    <a href="{{ url_for('questions.upload_exam', subject_id=subject.id) }}">upload again</a>
+    or add questions manually.
+</div>
+{% else %}
+
+<div class="alert alert-info small border-0 mb-4">
+    <i class="bi bi-lightbulb me-2"></i>
+    Review and edit extracted questions, set correct answers, and add topic tags.
+    Tags let you filter questions when generating tests.
+    Type tag names separated by commas. Existing tags: 
+    {% for tag in existing_tags %}
+        <span class="badge bg-primary-subtle text-primary ms-1">{{ tag.name }}</span>
+    {% endfor %}
+</div>
+
+<form method="POST" action="{{ url_for('questions.tag_questions', exam_session_id=exam_session.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" id="subject_id" value="{{ subject.id }}">
+
+    {% for question in questions %}
+    <div class="card shadow-sm border-0 rounded-3 mb-4 question-card" id="qcard-{{ question.id }}">
+        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-2">
+            <span class="fw-bold text-primary">
+                <i class="bi bi-question-circle me-1"></i>Question {{ question.question_number }}
+            </span>
+            <div class="d-flex align-items-center gap-2">
+                {% if question.correct_answer %}
+                <span class="badge bg-success">
+                    <i class="bi bi-check-circle me-1"></i>Answer: {{ question.correct_answer }}
+                </span>
+                {% endif %}
+                <a href="{{ url_for('questions.edit_question', question_id=question.id) }}"
+                   class="btn btn-xs btn-outline-secondary" style="font-size:0.75rem;padding:2px 8px;">
+                    <i class="bi bi-pencil me-1"></i>Edit
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% if question.has_image and question.image_path %}
+                <div class="col-md-3 text-center mb-3 mb-md-0">
+                    <img src="{{ url_for('static', filename=question.image_path) }}"
+                         class="img-fluid rounded border" alt="Question image"
+                         style="max-height:150px;">
+                </div>
+                <div class="col-md-9">
+                {% else %}
+                <div class="col-12">
+                {% endif %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-uppercase text-muted">Question Text</label>
+                        <textarea class="form-control form-control-sm" name="qtext_{{ question.id }}"
+                                  rows="2">{{ question.question_text or '' }}</textarea>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        {% for letter, val in [('A', question.option_a), ('B', question.option_b),
+                                                ('C', question.option_c), ('D', question.option_d)] %}
+                        <div class="col-sm-6">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text fw-bold bg-light">{{ letter }}</span>
+                                <input type="text" class="form-control"
+                                       value="{{ val or '' }}" readonly
+                                       style="background:#f8f9fa;">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-sm-4">
+                            <label class="form-label small fw-semibold">Correct Answer</label>
+                            <select class="form-select form-select-sm" name="correct_{{ question.id }}">
+                                <option value="">-- Select --</option>
+                                {% for letter in ['A', 'B', 'C', 'D'] %}
+                                <option value="{{ letter }}"
+                                    {% if question.correct_answer == letter %}selected{% endif %}>
+                                    {{ letter }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-sm-8">
+                            <label class="form-label small fw-semibold">
+                                <i class="bi bi-tags me-1"></i>Topic Tags
+                                <span class="text-muted fw-normal">(comma-separated)</span>
+                            </label>
+                            <input type="text" class="form-control form-control-sm tag-input"
+                                   name="tags_{{ question.id }}"
+                                   data-subject="{{ subject.id }}"
+                                   placeholder="e.g. Genetics, Cell Division"
+                                   value="{{ question.tags | map(attribute='name') | join(', ') }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="sticky-bottom bg-white border-top py-3 shadow-sm">
+        <div class="container d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-save me-2"></i>Save All Tags
+            </button>
+            <a href="{{ url_for('subjects.list_subjects') }}" class="btn btn-outline-secondary btn-lg">
+                Skip for Now
+            </a>
+        </div>
+    </div>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Simple tag autocomplete using datalist
+document.querySelectorAll('.tag-input').forEach(function(input) {
+    var subjectId = input.dataset.subject;
+    var listId = 'tags-datalist-' + input.name;
+    var dl = document.createElement('datalist');
+    dl.id = listId;
+    input.setAttribute('list', listId);
+    document.body.appendChild(dl);
+
+    input.addEventListener('keyup', function() {
+        var raw = this.value;
+        var lastComma = raw.lastIndexOf(',');
+        var query = lastComma >= 0 ? raw.substring(lastComma + 1).trim() : raw.trim();
+        if (!query) return;
+
+        fetch('/questions/tags/autocomplete?subject_id=' + subjectId + '&q=' + encodeURIComponent(query))
+            .then(r => r.json())
+            .then(function(tags) {
+                dl.innerHTML = '';
+                tags.forEach(function(tag) {
+                    var opt = document.createElement('option');
+                    var prefix = lastComma >= 0 ? raw.substring(0, lastComma + 1) + ' ' : '';
+                    opt.value = prefix + tag.name;
+                    dl.appendChild(opt);
+                });
+            });
+    });
+});
+</script>
+{% endblock %}

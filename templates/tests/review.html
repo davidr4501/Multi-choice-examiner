@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block title %}Review Test – {{ test.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-eye text-primary me-2"></i>Review: {{ test.title }}
+        </h2>
+        <p class="text-muted mb-0">
+            {{ test.subject.name }} &mdash; {{ test.duration_minutes }} min &mdash;
+            {{ test_questions|length }} question{% if test_questions|length != 1 %}s{% endif %}
+            <span class="badge {% if test.status == 'finalized' %}bg-success{% else %}bg-warning text-dark{% endif %} ms-2">
+                {{ test.status|capitalize }}
+            </span>
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if test.status == 'draft' %}
+        <form method="POST" action="{{ url_for('tests.finalize_test', test_id=test.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check2-all me-1"></i>Finalize Test
+            </button>
+        </form>
+        {% else %}
+        <a href="{{ url_for('tests.export_test', test_id=test.id) }}" class="btn btn-success">
+            <i class="bi bi-download me-1"></i>Export
+        </a>
+        {% endif %}
+        <a href="{{ url_for('tests.list_tests') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-list me-1"></i>All Tests
+        </a>
+    </div>
+</div>
+
+{% if test.status == 'draft' %}
+<div class="alert alert-info border-0 small mb-4">
+    <i class="bi bi-lightbulb me-2"></i>
+    Click <strong>Reject</strong> on any question you don't want — it'll be replaced by another matching question.
+    When satisfied, click <strong>Finalize Test</strong>.
+</div>
+{% endif %}
+
+<div class="accordion" id="questionsAccordion">
+    {% for tq in test_questions %}
+    {% set q = tq.question %}
+    <div class="accordion-item border-0 shadow-sm mb-3 rounded-3 overflow-hidden" id="item-{{ tq.id }}">
+        <h2 class="accordion-header">
+            <button class="accordion-button {% if not loop.first %}collapsed{% endif %} fw-semibold"
+                    type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse-{{ tq.id }}">
+                <span class="me-3 text-primary fw-bold">Q{{ loop.index }}</span>
+                <span class="text-truncate" style="max-width:600px;">
+                    {{ q.question_text or '(No text extracted)' }}
+                </span>
+                {% if q.correct_answer %}
+                <span class="badge bg-success ms-auto me-3">{{ q.correct_answer }}</span>
+                {% endif %}
+                {% if q.tags %}
+                <span class="d-none d-md-flex gap-1 ms-2 me-3">
+                    {% for tag in q.tags[:3] %}
+                    <span class="badge bg-primary-subtle text-primary">{{ tag.name }}</span>
+                    {% endfor %}
+                </span>
+                {% endif %}
+            </button>
+        </h2>
+        <div id="collapse-{{ tq.id }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}">
+            <div class="accordion-body bg-white">
+                <div class="row">
+                    {% if q.has_image and q.image_path %}
+                    <div class="col-md-3 text-center mb-3">
+                        <img src="{{ url_for('static', filename=q.image_path) }}"
+                             class="img-fluid rounded border" alt="Question image"
+                             style="max-height:180px;">
+                    </div>
+                    <div class="col-md-9">
+                    {% else %}
+                    <div class="col-12">
+                    {% endif %}
+                        <p class="mb-3">{{ q.question_text or '(No question text)' }}</p>
+
+                        <div class="row g-2 mb-3">
+                            {% for letter, text in [('A', q.option_a), ('B', q.option_b),
+                                                     ('C', q.option_c), ('D', q.option_d)] %}
+                            {% if text %}
+                            <div class="col-sm-6">
+                                <div class="p-2 rounded border
+                                    {% if q.correct_answer == letter %}border-success bg-success bg-opacity-10{% endif %}">
+                                    <span class="fw-bold
+                                        {% if q.correct_answer == letter %}text-success{% endif %}">
+                                        {{ letter }})
+                                    </span>
+                                    {{ text }}
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        {% if q.tags %}
+                        <div class="mb-2">
+                            {% for tag in q.tags %}
+                            <span class="badge bg-primary-subtle text-primary me-1">
+                                <i class="bi bi-tag me-1"></i>{{ tag.name }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        {% if test.status == 'draft' %}
+                        <form method="POST"
+                              action="{{ url_for('tests.reject_question', test_id=test.id, tq_id=tq.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger mt-2">
+                                <i class="bi bi-arrow-repeat me-1"></i>Reject &amp; Replace
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if test.status == 'draft' %}
+<div class="text-center mt-4">
+    <form method="POST" action="{{ url_for('tests.finalize_test', test_id=test.id) }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-success btn-lg">
+            <i class="bi bi-check2-all me-2"></i>Finalize Test
+        </button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}

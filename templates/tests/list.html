@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}My Tests – MCQ Examiner{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0">
+        <i class="bi bi-clipboard-check text-primary me-2"></i>My Tests
+    </h2>
+    <a href="{{ url_for('tests.create_test') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>New Test
+    </a>
+</div>
+
+{% if tests %}
+<div class="card shadow-sm border-0 rounded-3">
+    <div class="list-group list-group-flush">
+        {% for test in tests %}
+        <div class="list-group-item py-3 px-4">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <h5 class="fw-bold mb-0">{{ test.title }}</h5>
+                        <span class="badge {% if test.status == 'finalized' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                            {{ test.status|capitalize }}
+                        </span>
+                    </div>
+                    <div class="text-muted small">
+                        <i class="bi bi-book me-1"></i>{{ test.subject.name }}
+                        &nbsp;&bull;&nbsp;
+                        <i class="bi bi-clock me-1"></i>{{ test.duration_minutes }} min
+                        &nbsp;&bull;&nbsp;
+                        <i class="bi bi-list-ol me-1"></i>{{ test.num_questions }} questions
+                        &nbsp;&bull;&nbsp;
+                        <i class="bi bi-calendar3 me-1"></i>{{ test.created_at.strftime('%d %b %Y') }}
+                    </div>
+                </div>
+                <div class="d-flex gap-2 ms-3">
+                    <a href="{{ url_for('tests.review_test', test_id=test.id) }}"
+                       class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye me-1"></i>Review
+                    </a>
+                    {% if test.status == 'finalized' %}
+                    <a href="{{ url_for('tests.export_test', test_id=test.id) }}"
+                       class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-download me-1"></i>Export
+                    </a>
+                    {% endif %}
+                    <form method="POST"
+                          action="{{ url_for('tests.delete_test', test_id=test.id) }}"
+                          class="d-inline"
+                          onsubmit="return confirm('Delete test &quot;{{ test.title }}&quot;?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-clipboard text-muted" style="font-size:4rem;opacity:0.3;"></i>
+    <h4 class="mt-3 text-muted">No tests yet</h4>
+    <p class="text-muted">Generate a test from your question bank.</p>
+    <a href="{{ url_for('tests.create_test') }}" class="btn btn-primary btn-lg mt-2">
+        <i class="bi bi-plus-lg me-1"></i>Create First Test
+    </a>
+</div>
+{% endif %}
+{% endblock %}

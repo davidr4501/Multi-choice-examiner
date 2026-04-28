@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Profile – MCQ Examiner{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="d-flex align-items-center mb-4">
+            <i class="bi bi-person-circle text-primary me-2" style="font-size:2rem;"></i>
+            <h2 class="fw-bold mb-0">My Profile</h2>
+        </div>
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('auth.profile') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email</label>
+                        <input type="text" class="form-control bg-light" value="{{ current_user.email }}" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="name" class="form-label fw-semibold">Display Name</label>
+                        <input type="text" class="form-control" id="name" name="name"
+                               value="{{ current_user.name or '' }}" placeholder="Your name">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>Save Changes
+                    </button>
+                    <a href="{{ url_for('subjects.list_subjects') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
