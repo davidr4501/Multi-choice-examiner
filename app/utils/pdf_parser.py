@@ -14,29 +14,40 @@ _Q_PATTERN_SEP = re.compile(
     re.DOTALL | re.MULTILINE,
 )
 
-# Format B: "1  " (number followed by 2+ spaces – Cambridge / IB style)
+# Format B: "1  " (number followed by 2+ spaces – Cambridge / IB style, same line)
 _Q_PATTERN_SPACE = re.compile(
     r'(?:^|\n)[ \t]*(\d{1,3})[ \t]{2,}(.+?)'
     r'(?=\n[ \t]*\d{1,3}[ \t]{2,}|\Z)',
     re.DOTALL | re.MULTILINE,
 )
 
-# Format C: combined – either separator or 2+ spaces
+# Format C: combined – either separator or 2+ spaces (same line)
 _Q_PATTERN_COMBINED = re.compile(
     r'(?:^|\n)[ \t]*(?:[Qq]\.?\s*)?(\d{1,3})(?:[.):][ \t]+|[ \t]{2,})(.+?)'
     r'(?=\n[ \t]*(?:[Qq]\.?\s*)?\d{1,3}(?:[.):][ \t]|[ \t]{2,})|\Z)',
     re.DOTALL | re.MULTILINE,
 )
 
-_Q_PATTERNS = [_Q_PATTERN_SEP, _Q_PATTERN_SPACE, _Q_PATTERN_COMBINED]
+# Format D: number alone on its own line, question text on the next line.
+# This is the most common real-world Cambridge / exam-board PDF format where
+# PyMuPDF places the question number and text in the same block but on
+# separate lines: "1\nQuestion text here..."
+_Q_PATTERN_NEWLINE = re.compile(
+    r'(?:^|\n)[ \t]*(?:[Qq]\.?\s*)?(\d{1,3})[ \t]*\n[ \t]*(.+?)'
+    r'(?=\n[ \t]*(?:[Qq]\.?\s*)?\d{1,3}[ \t]*\n|\Z)',
+    re.DOTALL | re.MULTILINE,
+)
+
+_Q_PATTERNS = [_Q_PATTERN_SEP, _Q_PATTERN_SPACE, _Q_PATTERN_COMBINED, _Q_PATTERN_NEWLINE]
 
 # ---------------------------------------------------------------------------
-# Option pattern – handles A) A. (A) A   (2+ spaces) in one expression
-# Groups: (1) letter from "(A)" form  (2) letter from "A)" / "A  " form  (3) option text
+# Option pattern – handles all common formats in one expression:
+#   (A) text   A) text   A. text   A  text   A text   A\ntext
+# Groups: (1) letter from "(A)" form  (2) letter from other forms  (3) option text
 # ---------------------------------------------------------------------------
 _OPT_PATTERN = re.compile(
-    r'(?:^|\n)[ \t]*(?:\(([A-D])\)|([A-D])(?:[.):,][ \t]*|[ \t]{2,}))(.+?)'
-    r'(?=\n[ \t]*(?:\([A-D]\)|[A-D](?:[.):,][ \t]|[ \t]{2,}))|\Z)',
+    r'(?:^|\n)[ \t]*(?:\(([A-D])\)|([A-D])(?:[.):,][ \t]*|[ \t]*\n[ \t]*|[ \t]+))'
+    r'[ \t]*(.+?)(?=\n[ \t]*(?:\([A-D]\)|[A-D](?:[.):,][ \t]|[ \t]+|\n))|\Z)',
     re.DOTALL | re.MULTILINE,
 )
 
@@ -178,9 +189,9 @@ def _parse_with_q_pattern(text, q_pattern, page_images):
         else:
             q_text = q_block
 
-        # Strip leading question-number prefix
+        # Strip leading question-number prefix (handles "1." "1)" "1  " "1\n" formats)
         q_text = re.sub(
-            r'^[ \t]*(?:[Qq]\.?\s*)?\d{1,3}(?:[.):][ \t]+|[ \t]+)', '', q_text
+            r'^[ \t]*(?:[Qq]\.?\s*)?\d{1,3}(?:[.):,][ \t]*|[ \t]*\n[ \t]*|[ \t]{2,})', '', q_text
         ).strip()
 
         # Associate images proportionally across questions
