@@ -92,7 +92,15 @@ def upload_exam(subject_id):
 
         db.session.commit()
 
-        flash(f'Exam uploaded! {len(parsed_questions)} questions extracted.', 'success')
+        if parsed_questions:
+            flash(f'Exam uploaded! {len(parsed_questions)} questions extracted.', 'success')
+        else:
+            flash(
+                'Exam uploaded, but no questions could be extracted automatically. '
+                'This usually means the PDF is scanned/image-based, or uses an '
+                'unexpected layout. You can add questions manually below.',
+                'warning',
+            )
         return redirect(url_for('questions.tag_questions', exam_session_id=exam_session.id))
 
     return render_template('questions/upload.html', subject=subject)
