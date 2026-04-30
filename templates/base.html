@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MCQ Examiner{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block styles %}{% endblock %}
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
+            <i class="bi bi-pencil-square me-2"></i>MCQ Examiner
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                {% if current_user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint and request.endpoint.startswith('subjects') %}active{% endif %}"
+                       href="{{ url_for('subjects.list_subjects') }}">
+                        <i class="bi bi-book me-1"></i>Subjects
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint and request.endpoint.startswith('tests') %}active{% endif %}"
+                       href="{{ url_for('tests.list_tests') }}">
+                        <i class="bi bi-clipboard-check me-1"></i>Tests
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+            <ul class="navbar-nav ms-auto">
+                {% if current_user.is_authenticated %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle me-1"></i>
+                        {{ current_user.name or current_user.email }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}">
+                            <i class="bi bi-person me-2"></i>Profile
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
+                            <i class="bi bi-box-arrow-right me-2"></i>Logout
+                        </a></li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('auth.login') }}">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="container my-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                {% if category == 'success' %}<i class="bi bi-check-circle-fill me-2"></i>
+                {% elif category == 'danger' %}<i class="bi bi-exclamation-triangle-fill me-2"></i>
+                {% elif category == 'warning' %}<i class="bi bi-exclamation-circle-fill me-2"></i>
+                {% elif category == 'info' %}<i class="bi bi-info-circle-fill me-2"></i>
+                {% endif %}
+                {{ message|safe }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</main>
+
+<!-- Generic Modal -->
+<div class="modal fade" id="genericModal" tabindex="-1" aria-labelledby="genericModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="genericModalLabel">Modal title</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="genericModalBody">
+        ...
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer mt-auto py-3 bg-white border-top">
+    <div class="container text-center text-muted small">
+        <i class="bi bi-mortarboard-fill me-1"></i>MCQ Examiner &copy; {{ now.year }}
+        &mdash; Helping teachers create better exams
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

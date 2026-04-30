@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Verify OTP – MCQ Examiner{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card shadow border-0 rounded-3">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <i class="bi bi-key-fill text-warning" style="font-size:3rem;"></i>
+                    <h2 class="fw-bold mt-2">Enter Your OTP</h2>
+                    <p class="text-muted">
+                        A 6-digit code was sent to<br>
+                        <strong class="text-primary">{{ email }}</strong>
+                    </p>
+                </div>
+
+                <form method="POST" action="{{ url_for('auth.verify_otp') }}" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="otp" class="form-label fw-semibold">
+                            <i class="bi bi-123 me-1"></i>One-Time Password
+                        </label>
+                        <input type="text" class="form-control form-control-lg text-center otp-input"
+                               id="otp" name="otp" maxlength="6" pattern="\d{6}"
+                               placeholder="000000" required autofocus
+                               style="letter-spacing: 0.5em; font-size: 1.8rem;">
+                        <div class="form-text text-center">Valid for {{ otp_expiry_minutes }} minutes</div>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-lg w-100">
+                        <i class="bi bi-check2-circle me-2"></i>Verify &amp; Login
+                    </button>
+                </form>
+
+                <hr class="my-3">
+                <div class="text-center">
+                    <a href="{{ url_for('auth.login') }}" class="text-muted small">
+                        <i class="bi bi-arrow-left me-1"></i>Use a different email
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-submit when 6 digits entered
+    document.getElementById('otp').addEventListener('input', function() {
+        if (this.value.length === 6 && /^\d{6}$/.test(this.value)) {
+            this.closest('form').submit();
+        }
+    });
+</script>
+{% endblock %}

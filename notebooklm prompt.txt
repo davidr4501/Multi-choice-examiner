@@ -1,0 +1,23 @@
+On only examination paper 11, extract the first 15 questions. Please check these and recommend a number of tags for each question. Include "Microeconomics", "Macroeconomics", "PPC", "Supply", "Demand", "Equilibrium", "Shift", "Tax" and other similar tags for questions aimed at IGCSE level economics students.
+
+
+From the document images, extract all multiple-choice questions. For each question, provide a JSON object with the following fields:
+
+
+
+question_number: The question number.
+
+question_html: The full question as an HTML string. Any images in the question should be represented by an  tag with a placeholder like [IMAGE_0].
+
+options: A dictionary with keys "A", "B", "C", "D" and HTML string values. Image placeholders can also be used here.
+
+images: A list of the image that should be included in this question.
+
+answers_embedded: A boolean, true if the A, B, C, D labels are part of an image or table in the question itself.
+
+correct_answer: The correct letter, if available.
+
+tags: a list of all tags recommended for the question
+
+
+Return a single JSON list of these objects.

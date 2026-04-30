@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Edit Question – MCQ Examiner{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="d-flex align-items-center mb-4">
+            <a href="{{ url_for('questions.tag_questions', exam_session_id=question.exam_session_id) }}"
+               class="btn btn-outline-secondary btn-sm me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h2 class="fw-bold mb-0">
+                <i class="bi bi-pencil text-primary me-2"></i>Edit Question {{ question.question_number }}
+            </h2>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-4">
+                <form method="POST"
+                      action="{{ url_for('questions.edit_question', question_id=question.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Question Text</label>
+                        <textarea class="form-control" name="question_text" rows="4" required>{{ question.question_text or '' }}</textarea>
+                    </div>
+
+                    {% for letter, field in [('A','option_a'),('B','option_b'),('C','option_c'),('D','option_d')] %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Option {{ letter }}</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-primary text-white fw-bold">{{ letter }}</span>
+                            <input type="text" class="form-control" name="{{ field }}"
+                                   value="{{ question|attr(field) or '' }}">
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Correct Answer</label>
+                        <select class="form-select" name="correct_answer">
+                            <option value="">-- Not set --</option>
+                            {% for letter in ['A', 'B', 'C', 'D'] %}
+                            <option value="{{ letter }}"
+                                {% if question.correct_answer == letter %}selected{% endif %}>
+                                {{ letter }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {% if question.has_image and question.image_path %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Associated Image</label>
+                        <div>
+                            <img src="{{ url_for('static', filename=question.image_path) }}"
+                                 class="img-fluid rounded border" alt="Question image"
+                                 style="max-height:200px;">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i>Save Changes
+                        </button>
+                        <a href="{{ url_for('questions.tag_questions', exam_session_id=question.exam_session_id) }}"
+                           class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

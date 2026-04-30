@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Upload JSON – {{ subject.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="d-flex align-items-center mb-4">
+            <a href="{{ url_for('questions.upload_exam', subject_id=subject.id) }}" class="btn btn-outline-secondary btn-sm me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h2 class="fw-bold mb-0"><i class="bi bi-file-earmark-code text-info me-2"></i>Upload via JSON</h2>
+                <p class="text-muted mb-0">Subject: <strong>{{ subject.name }}</strong></p>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('questions.upload_json', subject_id=subject.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-4">
+                        <label for="reference_code" class="form-label fw-semibold">Reference Code</label>
+                        <input type="text" class="form-control" id="reference_code" name="reference_code"
+                               placeholder="e.g. My Custom Quiz 1" required>
+                        <div class="form-text">A unique name for this set of questions.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="json_content" class="form-label fw-semibold">JSON Content</label>
+                        <textarea class="form-control" id="json_content" name="json_content" rows="15"
+                                  placeholder="Paste your JSON array of questions here.">{{ json_content or '' }}</textarea>
+                        <div class="form-text">
+                            Paste the JSON content for your questions here. See documentation for the required format.
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-info btn-lg">
+                            <i class="bi bi-cloud-upload me-2"></i>Import Questions
+                        </button>
+                        <a href="{{ url_for('questions.upload_exam', subject_id=subject.id) }}" class="btn btn-outline-secondary btn-lg">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

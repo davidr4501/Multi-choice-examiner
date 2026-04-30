@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Flask instance
+instance/
+*.db
+*.sqlite3
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Uploads (keep directory)
+static/uploads/*.pdf
+static/uploads/images/*.png
+static/uploads/images/*.jpg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
