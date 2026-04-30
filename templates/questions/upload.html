@@ -16,6 +16,17 @@
 
         <div class="card shadow-sm border-0 rounded-3">
             <div class="card-body p-4">
+                <div class="mb-4 text-center">
+                    <p>For manual entry or bulk import, use the JSON upload method:</p>
+                    <a href="{{ url_for('questions.upload_json', subject_id=subject.id) }}" class="btn btn-outline-info btn-lg">
+                        <i class="bi bi-file-earmark-code me-2"></i>Upload via JSON
+                    </a>
+                </div>
+
+                <hr>
+
+                <h5 class="text-center text-muted my-3">Or Use Automatic PDF Parsing</h5>
+
                 <form method="POST"
                       action="{{ url_for('questions.upload_exam', subject_id=subject.id) }}"
                       enctype="multipart/form-data">
@@ -51,22 +62,9 @@
                         </div>
                     </div>
 
-                    <div class="alert alert-info border-0 small">
-                        <i class="bi bi-info-circle-fill me-2"></i>
-                        <strong>Parsing Tips:</strong> The system automatically detects questions in
-                        the most common formats:
-                        <ul class="mb-0 mt-1">
-                            <li>Number + separator: <code>1.</code>&nbsp;<code>1)</code>&nbsp;<code>Q1.</code></li>
-                            <li>Number + two spaces (Cambridge / IB style): <code>1&nbsp;&nbsp;text</code></li>
-                            <li>Options: <code>A)</code>&nbsp;<code>A.</code>&nbsp;<code>(A)</code>&nbsp;<code>A&nbsp;&nbsp;text</code></li>
-                        </ul>
-                        Text-based PDFs work best. Scanned (image-only) PDFs cannot be parsed automatically.
-                        You can edit or add questions manually after upload.
-                    </div>
-
                     <div class="d-flex gap-2 mt-3">
                         <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn">
-                            <i class="bi bi-cloud-upload me-2"></i>Upload &amp; Parse
+                            <i class="bi bi-cloud-upload me-2"></i>Upload &amp; Parse PDF
                         </button>
                         <a href="{{ url_for('subjects.list_subjects') }}" class="btn btn-outline-secondary btn-lg">
                             Cancel

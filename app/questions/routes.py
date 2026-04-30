@@ -1,194 +1,174 @@
 import os
 import uuid
+import json
 from flask import render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app import db
 from app.questions import questions_bp
-from app.models import Subject, ExamSession, Question, Tag, QuestionTag
-
+from app.models import Subject, ExamSession, Question, Tag
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
-
 @questions_bp.route('/upload/<int:subject_id>', methods=['GET', 'POST'])
 @login_required
 def upload_exam(subject_id):
-    subject = Subject.query.filter_by(
-        id=subject_id, teacher_id=current_user.id
-    ).first_or_404()
+    subject = Subject.query.filter_by(id=subject_id, teacher_id=current_user.id).first_or_404()
+    return render_template('questions/upload.html', subject=subject)
+
+@questions_bp.route('/upload_json/<int:subject_id>', methods=['GET', 'POST'])
+@login_required
+def upload_json(subject_id):
+    subject = Subject.query.filter_by(id=subject_id, teacher_id=current_user.id).first_or_404()
 
     if request.method == 'POST':
         reference_code = request.form.get('reference_code', '').strip()
-        if not reference_code:
-            flash('Reference code is required.', 'danger')
-            return render_template('questions/upload.html', subject=subject)
+        json_content = request.form.get('json_content', '').strip()
 
-        exam_file = request.files.get('exam_pdf')
-        markscheme_file = request.files.get('markscheme_pdf')
+        if not reference_code or not json_content:
+            flash('Both Reference Code and JSON Content are required.', 'danger')
+            return render_template('questions/upload_json.html', subject=subject)
 
-        if not exam_file or not exam_file.filename or not allowed_file(exam_file.filename):
-            flash('Please upload a valid exam PDF.', 'danger')
-            return render_template('questions/upload.html', subject=subject)
+        try:
+            questions_data = json.loads(json_content)
+        except json.JSONDecodeError as e:
+            flash(f'Invalid JSON format: {e}', 'danger')
+            return render_template('questions/upload_json.html', subject=subject, json_content=json_content)
 
-        upload_folder = current_app.config['UPLOAD_FOLDER']
-
-        exam_filename = f"{uuid.uuid4().hex}_{secure_filename(exam_file.filename)}"
-        exam_abs_path = os.path.join(upload_folder, exam_filename)
-        exam_file.save(exam_abs_path)
-
-        markscheme_abs_path = None
-        markscheme_rel_path = None
-        if markscheme_file and markscheme_file.filename and allowed_file(markscheme_file.filename):
-            ms_filename = f"{uuid.uuid4().hex}_{secure_filename(markscheme_file.filename)}"
-            markscheme_abs_path = os.path.join(upload_folder, ms_filename)
-            markscheme_file.save(markscheme_abs_path)
-            markscheme_rel_path = os.path.join('uploads', ms_filename)
-
-        exam_session = ExamSession(
-            subject_id=subject_id,
-            reference_code=reference_code,
-            pdf_path=os.path.join('uploads', exam_filename),
-            markscheme_path=markscheme_rel_path,
-        )
+        exam_session = ExamSession(subject_id=subject.id, reference_code=reference_code)
         db.session.add(exam_session)
         db.session.commit()
 
-        from app.utils.pdf_parser import parse_exam_pdf, parse_markscheme_pdf
-        images_folder = current_app.config['IMAGES_FOLDER']
-
-        try:
-            parsed_questions = parse_exam_pdf(exam_abs_path, images_folder)
-        except Exception as e:
-            current_app.logger.error(f'PDF parsing error: {e}')
-            flash(f'Warning: Could not parse PDF automatically: {e}', 'warning')
-            parsed_questions = []
-
-        correct_answers = {}
-        if markscheme_abs_path:
-            try:
-                correct_answers = parse_markscheme_pdf(markscheme_abs_path)
-            except Exception as e:
-                current_app.logger.error(f'Mark scheme parsing error: {e}')
-                flash('Warning: Could not parse mark scheme automatically.', 'warning')
-
-        for q_data in parsed_questions:
-            q_num = q_data['question_number']
+        for q_data in questions_data:
+            options = q_data.get('options', {})
             question = Question(
                 exam_session_id=exam_session.id,
-                question_number=q_num,
-                question_text=q_data.get('question_text', ''),
-                option_a=q_data.get('option_a', ''),
-                option_b=q_data.get('option_b', ''),
-                option_c=q_data.get('option_c', ''),
-                option_d=q_data.get('option_d', ''),
-                correct_answer=correct_answers.get(q_num),
-                has_image=q_data.get('has_image', False),
-                image_path=q_data.get('image_path'),
+                question_number=q_data.get('question_number'),
+                question_html=q_data.get('question_html', ''),
+                option_a=options.get('A', ''),
+                option_b=options.get('B', ''),
+                option_c=options.get('C', ''),
+                option_d=options.get('D', ''),
+                correct_answer=q_data.get('correct_answer'),
+                answers_embedded=q_data.get('answers_embedded', False)
             )
             db.session.add(question)
+            db.session.flush()
 
+            tag_names = q_data.get('tags', [])
+            if tag_names:
+                for tag_name in tag_names:
+                    tag = Tag.query.filter_by(name=tag_name, subject_id=subject.id).first()
+                    if not tag:
+                        tag = Tag(name=tag_name, subject_id=subject.id)
+                        db.session.add(tag)
+                    question.tags.append(tag)
+        
         db.session.commit()
-
-        if parsed_questions:
-            flash(f'Exam uploaded! {len(parsed_questions)} questions extracted.', 'success')
-        else:
-            flash(
-                'Exam uploaded, but no questions could be extracted automatically. '
-                'This usually means the PDF is scanned/image-based, or uses an '
-                'unexpected layout. You can add questions manually below.',
-                'warning',
-            )
+        flash(f'{len(questions_data)} questions uploaded. Please review and save each question.', 'success')
         return redirect(url_for('questions.tag_questions', exam_session_id=exam_session.id))
 
-    return render_template('questions/upload.html', subject=subject)
+    return render_template('questions/upload_json.html', subject=subject)
 
+@questions_bp.route('/image_upload', methods=['POST'])
+@login_required
+def image_upload():
+    file = request.files.get('file')
+    if not file:
+        return jsonify({'error': 'No file provided.'}), 400
 
-@questions_bp.route('/tag/<int:exam_session_id>', methods=['GET', 'POST'])
+    images_folder = current_app.config['IMAGES_FOLDER']
+    filename = f'img_{uuid.uuid4().hex}{os.path.splitext(file.filename)[1]}'
+    file_path = os.path.join(images_folder, filename)
+    file.save(file_path)
+
+    location = f"/static/uploads/images/{filename}"
+    return jsonify({'location': location})
+
+@questions_bp.route('/get/<int:question_id>', methods=['GET'])
+@login_required
+def get_question_content(question_id):
+    question = Question.query.get_or_404(question_id)
+    if question.exam_session.subject.teacher_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    return jsonify({
+        'question_html': question.question_html,
+        'option_a': question.option_a,
+        'option_b': question.option_b,
+        'option_c': question.option_c,
+        'option_d': question.option_d,
+        'reference_code': question.exam_session.reference_code
+    })
+
+@questions_bp.route('/save_single/<int:question_id>', methods=['POST'])
+@login_required
+def save_single_question(question_id):
+    question = Question.query.get_or_404(question_id)
+    if question.exam_session.subject.teacher_id != current_user.id:
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+
+    data = request.get_json()
+    
+    question.question_html = data.get('question_html', '')
+    question.option_a = data.get('option_a', '')
+    question.option_b = data.get('option_b', '')
+    question.option_c = data.get('option_c', '')
+    question.option_d = data.get('option_d', '')
+    question.correct_answer = data.get('correct_answer')
+    question.answers_embedded = data.get('answers_embedded', False)
+    
+    tag_names = [t.strip() for t in data.get('tags', '').split(',') if t.strip()]
+    question.tags.clear()
+    for tag_name in tag_names:
+        tag = Tag.query.filter_by(name=tag_name, subject_id=question.exam_session.subject_id).first()
+        if not tag:
+            tag = Tag(name=tag_name, subject_id=question.exam_session.subject_id)
+            db.session.add(tag)
+        question.tags.append(tag)
+
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'Question saved!'})
+
+@questions_bp.route('/delete_single/<int:question_id>', methods=['DELETE'])
+@login_required
+def delete_single_question(question_id):
+    question = Question.query.get_or_404(question_id)
+    if question.exam_session.subject.teacher_id != current_user.id:
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+    
+    db.session.delete(question)
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'Question deleted!'})
+
+@questions_bp.route('/tag/<int:exam_session_id>', methods=['GET'])
 @login_required
 def tag_questions(exam_session_id):
-    exam_session = ExamSession.query.join(Subject).filter(
-        ExamSession.id == exam_session_id,
-        Subject.teacher_id == current_user.id
-    ).first_or_404()
-
-    subject = exam_session.subject
-    questions = Question.query.filter_by(
-        exam_session_id=exam_session_id
-    ).order_by(Question.question_number).all()
-    existing_tags = Tag.query.filter_by(subject_id=subject.id).all()
-
-    if request.method == 'POST':
-        for question in questions:
-            tag_names_raw = request.form.get(f'tags_{question.id}', '')
-            tag_names = [t.strip() for t in tag_names_raw.split(',') if t.strip()]
-
-            q_text = request.form.get(f'qtext_{question.id}', '').strip()
-            if q_text:
-                question.question_text = q_text
-
-            correct_answer = request.form.get(f'correct_{question.id}', '').strip().upper()
-            if correct_answer in ('A', 'B', 'C', 'D'):
-                question.correct_answer = correct_answer
-
-            QuestionTag.query.filter_by(question_id=question.id).delete()
-
-            for tag_name in tag_names:
-                tag = Tag.query.filter_by(name=tag_name, subject_id=subject.id).first()
-                if not tag:
-                    tag = Tag(name=tag_name, subject_id=subject.id)
-                    db.session.add(tag)
-                    db.session.flush()
-                qt = QuestionTag(question_id=question.id, tag_id=tag.id)
-                db.session.add(qt)
-
-        db.session.commit()
-        flash('Tags saved successfully!', 'success')
+    exam_session = ExamSession.query.get_or_404(exam_session_id)
+    if exam_session.subject.teacher_id != current_user.id:
+        flash('You are not authorized to view this page.', 'danger')
         return redirect(url_for('subjects.list_subjects'))
+        
+    questions_in_session = Question.query.filter_by(exam_session_id=exam_session_id).order_by(Question.question_number).all()
+    
+    for q in questions_in_session:
+        duplicates = Question.query.join(ExamSession).filter(
+            ExamSession.subject_id == exam_session.subject_id,
+            Question.question_html == q.question_html,
+            Question.id != q.id
+        ).all()
+        
+        q.is_duplicate = False
+        if duplicates:
+            q.is_duplicate = True
+            q.duplicate_ids = [d.id for d in duplicates]
 
+    existing_tags = Tag.query.filter_by(subject_id=exam_session.subject_id).order_by(Tag.name).all()
+    
     return render_template('questions/tag.html',
                            exam_session=exam_session,
-                           subject=subject,
-                           questions=questions,
+                           subject=exam_session.subject,
+                           questions=questions_in_session,
                            existing_tags=existing_tags)
-
-
-@questions_bp.route('/tags/autocomplete')
-@login_required
-def tags_autocomplete():
-    subject_id = request.args.get('subject_id', type=int)
-    query = request.args.get('q', '').strip()
-    if not subject_id:
-        return jsonify([])
-    tags = Tag.query.filter(
-        Tag.subject_id == subject_id,
-        Tag.name.ilike(f'%{query}%')
-    ).all()
-    return jsonify([{'id': t.id, 'name': t.name} for t in tags])
-
-
-@questions_bp.route('/question/<int:question_id>/edit', methods=['GET', 'POST'])
-@login_required
-def edit_question(question_id):
-    question = Question.query.join(ExamSession).join(Subject).filter(
-        Question.id == question_id,
-        Subject.teacher_id == current_user.id
-    ).first_or_404()
-
-    if request.method == 'POST':
-        question.question_text = request.form.get('question_text', '').strip()
-        question.option_a = request.form.get('option_a', '').strip()
-        question.option_b = request.form.get('option_b', '').strip()
-        question.option_c = request.form.get('option_c', '').strip()
-        question.option_d = request.form.get('option_d', '').strip()
-        correct = request.form.get('correct_answer', '').strip().upper()
-        if correct in ('A', 'B', 'C', 'D'):
-            question.correct_answer = correct
-        db.session.commit()
-        flash('Question updated.', 'success')
-        return redirect(url_for('questions.tag_questions',
-                                exam_session_id=question.exam_session_id))
-
-    return render_template('questions/edit.html', question=question)

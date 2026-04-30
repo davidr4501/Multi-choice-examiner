@@ -33,6 +33,9 @@ class Config:
     # OTP
     OTP_EXPIRY_MINUTES = 5
 
+    # TinyMCE
+    TINYMCE_API_KEY = os.environ.get('TINYMCE_API_KEY')
+
     # WTF
     WTF_CSRF_ENABLED = True
 
@@ -43,6 +46,9 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
+    # In production, you'd definitely want to set the TinyMCE key
+    if not Config.TINYMCE_API_KEY:
+        raise ValueError("TINYMCE_API_KEY is not set for production environment.")
 
 
 config = {

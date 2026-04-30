@@ -1,4 +1,6 @@
 import os
+import logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -18,6 +20,29 @@ def create_app(config_name=None):
 
     app = Flask(__name__, template_folder='../templates', static_folder='../static')
     app.config.from_object(config[config_name])
+
+    # Configure logging
+    if not app.debug:
+        app.logger.setLevel(logging.INFO)
+    else:
+        app.logger.setLevel(logging.DEBUG) # Set to DEBUG for development
+        
+    # Ensure handlers are not duplicated
+    if not app.logger.handlers:
+        # Log to file
+        file_handler = RotatingFileHandler('instance/flask_app.log', maxBytes=10240, backupCount=10)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+        ))
+        app.logger.addHandler(file_handler)
+
+        # Also log to console for debug mode
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s'
+        ))
+        app.logger.addHandler(stream_handler)
+
 
     # Ensure upload directories exist
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

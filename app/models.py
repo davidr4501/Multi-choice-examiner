@@ -64,14 +64,13 @@ class Question(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     exam_session_id = db.Column(db.Integer, db.ForeignKey('exam_sessions.id'), nullable=False)
     question_number = db.Column(db.Integer, nullable=False)
-    question_text = db.Column(db.Text)
+    question_html = db.Column(db.Text)
     option_a = db.Column(db.Text)
     option_b = db.Column(db.Text)
     option_c = db.Column(db.Text)
     option_d = db.Column(db.Text)
     correct_answer = db.Column(db.String(1))
-    has_image = db.Column(db.Boolean, default=False)
-    image_path = db.Column(db.String(500))
+    answers_embedded = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     tags = db.relationship('Tag', secondary='question_tags',
